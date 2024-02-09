@@ -9,8 +9,6 @@
 #define REQUIRE_PLUGIN
 
 #define PLUGIN_NAME "CIDR Block Discord"
-#define WEBHOOK_URL_MAX_SIZE			1000
-#define WEBHOOK_THREAD_NAME_MAX_SIZE	100
 
 ConVar g_cvWebhook, g_cvWebhookRetry, g_cvHostName, g_cvAvatar, g_cvUsername;
 ConVar g_cvChannelType, g_cvThreadName, g_cvThreadID;
@@ -23,7 +21,7 @@ public Plugin myinfo =
 	name        = PLUGIN_NAME,
 	author      = ".Rushaway",
 	description = "CIDR Block Discord",
-	version     = "1.0",
+	version     = "1.0.1",
 	url         = ""
 };
 
@@ -83,14 +81,14 @@ public void CIDR_OnActionPerformed(int client, int timestamp, char[] sAction)
 	char sTime[64];
 	FormatTime(sTime, sizeof(sTime), "%d/%m/%Y @ %H:%M:%S", timestamp);
 	
-	char sMessage[1999];
+	char sMessage[WEBHOOK_MSG_MAX_SIZE];
 	Format(sMessage, sizeof(sMessage), "```Action performed on: %s \nAction perfomed at: %s \n%s```", g_sServerName, sTime, sAction);
 	ReplaceString(sMessage, sizeof(sMessage), "\\n", "\n");
 
 	SendWebHook(sMessage, sWebhookURL);
 }
 
-stock void SendWebHook(char sMessage[1999], char sWebhookURL[WEBHOOK_URL_MAX_SIZE])
+stock void SendWebHook(char sMessage[WEBHOOK_MSG_MAX_SIZE], char sWebhookURL[WEBHOOK_URL_MAX_SIZE])
 {
 	Webhook webhook = new Webhook(sMessage);
 
@@ -142,7 +140,7 @@ stock void SendWebHook(char sMessage[1999], char sWebhookURL[WEBHOOK_URL_MAX_SIZ
 public void OnWebHookExecuted(HTTPResponse response, DataPack pack)
 {
 	static int retries = 0;
-	char sMessage[1999], sWebhookURL[WEBHOOK_URL_MAX_SIZE];
+	char sMessage[WEBHOOK_MSG_MAX_SIZE], sWebhookURL[WEBHOOK_URL_MAX_SIZE];
 
 	pack.Reset();
 	bool IsThreadReply = pack.ReadCell();
