@@ -1,7 +1,6 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#include <multicolors>
 #include <discordWebhookAPI>
 
 #undef REQUIRE_PLUGIN
@@ -21,7 +20,7 @@ public Plugin myinfo =
 	name        = PLUGIN_NAME,
 	author      = ".Rushaway",
 	description = "CIDR Block Discord",
-	version     = "1.0.1",
+	version     = "1.0.2",
 	url         = ""
 };
 
