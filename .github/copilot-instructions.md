@@ -11,8 +11,8 @@ This repository contains a SourceMod plugin that integrates CIDR block notificat
 ## Technical Environment & Dependencies
 
 ### Core Dependencies
-- **SourceMod**: 1.11.0-git6934+ (target 1.12+ for new features)
-- **Build System**: SourceKnight (not direct spcomp compilation)
+- **SourceMod**: 1.12 (spcomp compiler)
+- **Build System**: Native GitHub Actions workflow (`.github/workflows/ci.yml`), compiling directly with `spcomp`
 - **Required Plugins**:
   - CIDR plugin (main dependency - provides `CIDR_OnActionPerformed` forward)
   - MultiColors (for colored text support)
@@ -21,9 +21,9 @@ This repository contains a SourceMod plugin that integrates CIDR block notificat
   - Extended-Discord (for enhanced Discord logging)
 
 ### Build Process
-- Uses SourceKnight build system configured in `sourceknight.yaml`
-- Build command: Use GitHub Actions or SourceKnight CLI with `cmd: build`
-- Dependencies are automatically downloaded and configured
+- Uses a native GitHub Actions workflow defined in `.github/workflows/ci.yml`
+- Build command: the CI workflow's "Install dependencies" step clones the include dependencies, then the "Build sourcemod plugin" step runs `spcomp` directly
+- Dependencies are cloned from their source repositories and their `include` folders are copied into `addons/sourcemod/scripting/include` before compilation
 - Output: Compiled `.smx` files in `/addons/sourcemod/plugins`
 
 ## Code Patterns & Architecture
@@ -108,7 +108,7 @@ if (response.Status != expected_status) {
 - **String Operations**: Use `Format()` for complex string building
 
 ### Testing Approach
-1. **Build Testing**: Use SourceKnight build system locally
+1. **Build Testing**: Run `spcomp` locally against `addons/sourcemod/scripting/CIDR_Discord.sp` with the dependency includes in place (see the CI workflow for the exact steps), or push/open a PR to trigger the GitHub Actions build
 2. **Integration Testing**: Test with actual CIDR plugin on development server
 3. **Discord Testing**: Verify webhook delivery with different channel types
 4. **Error Testing**: Test retry mechanism and fallback logging
@@ -143,7 +143,7 @@ g_cvNewOption = CreateConVar("sm_cidr_discord_new_option", "default", "Descripti
 1. **Webhook Failures**: Check URL validity and channel permissions
 2. **Thread Issues**: Verify thread_name/thread_id configuration
 3. **Plugin Load Order**: Ensure CIDR plugin loads before this plugin
-4. **Dependency Missing**: Check SourceKnight dependency resolution
+4. **Dependency Missing**: Check the "Install dependencies" step in `.github/workflows/ci.yml` for the expected include sources
 
 ### Debugging Tools
 - **SourceMod Logs**: Check `logs/errors_*.log` for plugin errors
@@ -189,7 +189,7 @@ g_cvNewOption = CreateConVar("sm_cidr_discord_new_option", "default", "Descripti
 
 - **Plugin Version**: Update in `myinfo` structure
 - **Compatibility**: Maintain backward compatibility with SourceMod 1.11+
-- **Dependency Versions**: Manage through `sourceknight.yaml`
+- **Dependency Versions**: Managed via the `git clone` steps in `.github/workflows/ci.yml`
 - **Semantic Versioning**: Follow MAJOR.MINOR.PATCH pattern
 
 ## Security Considerations
