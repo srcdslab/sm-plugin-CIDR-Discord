@@ -10,7 +10,7 @@
 #define PLUGIN_NAME "CIDR Block Discord"
 
 ConVar g_cvWebhook, g_cvWebhookRetry, g_cvHostName, g_cvAvatar, g_cvUsername;
-ConVar g_cvChannelType, g_cvThreadName, g_cvThreadID;
+ConVar g_cvThreadName, g_cvThreadID;
 
 char g_sServerName[128];
 bool g_Plugin_ExtDiscord = false;
@@ -20,7 +20,7 @@ public Plugin myinfo =
 	name        = PLUGIN_NAME,
 	author      = ".Rushaway",
 	description = "CIDR Block Discord",
-	version     = "1.0.2",
+	version     = "1.1.0",
 	url         = ""
 };
 
@@ -36,7 +36,6 @@ public void OnPluginStart()
 	g_cvWebhookRetry = CreateConVar("sm_cidr_discord_webhook_retry", "3", "Number of retries if webhook fails.", FCVAR_PROTECTED);
 	g_cvAvatar = CreateConVar("sm_cidr_discord_avatar", "https://avatars.githubusercontent.com/u/110772618?s=200&v=4", "URL to Avatar image.");
 	g_cvUsername = CreateConVar("sm_cidr_discord_username", "CIDR Discord", "Discord username.");
-	g_cvChannelType = CreateConVar("sm_cidr_discord_channel_type", "0", "Type of your channel: (1 = Thread, 0 = Classic Text channel");
 
 	/* Thread config */
 	g_cvThreadName = CreateConVar("sm_cidr_discord_threadname", "CDIR - New Block", "The Thread Name of your Discord forums. (If not empty, will create a new thread)", FCVAR_PROTECTED);
@@ -95,21 +94,6 @@ stock void SendWebHook(char sMessage[WEBHOOK_MSG_MAX_SIZE], char sWebhookURL[WEB
 	g_cvThreadID.GetString(sThreadID, sizeof sThreadID);
 	g_cvThreadName.GetString(sThreadName, sizeof sThreadName);
 
-	bool IsThread = g_cvChannelType.BoolValue;
-
-	if (IsThread) {
-		if (!sThreadName[0] && !sThreadID[0]) {
-			LogError("[%s] Thread Name or ThreadID not found or specified.", PLUGIN_NAME);
-			delete webhook;
-			return;
-		} else {
-			if (strlen(sThreadName) > 0) {
-				webhook.SetThreadName(sThreadName);
-				sThreadID[0] = '\0';
-			}
-		}
-	}
-
 	/* Webhook UserName */
 	char sName[128];
 	g_cvUsername.GetString(sName, sizeof(sName));
@@ -122,13 +106,11 @@ stock void SendWebHook(char sMessage[WEBHOOK_MSG_MAX_SIZE], char sWebhookURL[WEB
 		webhook.SetUsername(sName);
 	if (strlen(sAvatar) > 0)
 		webhook.SetAvatarURL(sAvatar);
+	if (strlen(sThreadName) > 0)
+		webhook.SetThreadName(sThreadName);
 
 	DataPack pack = new DataPack();
 
-	if (IsThread && strlen(sThreadName) <= 0 && strlen(sThreadID) > 0)
-		pack.WriteCell(1);
-	else
-		pack.WriteCell(0);
 	pack.WriteString(sMessage);
 	pack.WriteString(sWebhookURL);
 
@@ -142,29 +124,28 @@ public void OnWebHookExecuted(HTTPResponse response, DataPack pack)
 	char sMessage[WEBHOOK_MSG_MAX_SIZE], sWebhookURL[WEBHOOK_URL_MAX_SIZE];
 
 	pack.Reset();
-	bool IsThreadReply = pack.ReadCell();
 	pack.ReadString(sMessage, sizeof(sMessage));
 	pack.ReadString(sWebhookURL, sizeof(sWebhookURL));
 	delete pack;
 	
-	if ((!IsThreadReply && response.Status != HTTPStatus_OK) || (IsThreadReply && response.Status != HTTPStatus_NoContent))
+	if (response.Status != HTTPStatus_OK && response.Status != HTTPStatus_NoContent)
 	{
 		if (retries < g_cvWebhookRetry.IntValue)
 		{
-			PrintToServer("[%s] Failed to send the webhook. Resending it .. (%d/%d)", PLUGIN_NAME, retries, g_cvWebhookRetry.IntValue);
+			PrintToServer("[%s] Failed to send the webhook (HTTP %d). Resending it .. (%d/%d)", PLUGIN_NAME, view_as<int>(response.Status), retries, g_cvWebhookRetry.IntValue);
 			SendWebHook(sMessage, sWebhookURL);
 			retries++;
 			return;
 		} else {
 			if (!g_Plugin_ExtDiscord)
 			{
-				LogError("[%s] Failed to send the webhook after %d retries, aborting.", PLUGIN_NAME, retries);
+				LogError("[%s] Failed to send the webhook after %d retries (last HTTP status: %d), aborting.", PLUGIN_NAME, retries, view_as<int>(response.Status));
 				LogError("[%s] Failed message : %s", PLUGIN_NAME, sMessage);
 			}
 		#if defined _extendeddiscord_included
 			else
 			{
-				ExtendedDiscord_LogError("[%s] Failed to send the webhook after %d retries, aborting.", PLUGIN_NAME, retries);
+				ExtendedDiscord_LogError("[%s] Failed to send the webhook after %d retries (last HTTP status: %d), aborting.", PLUGIN_NAME, retries, view_as<int>(response.Status));
 				ExtendedDiscord_LogError("[%s] Failed message : %s", PLUGIN_NAME, sMessage);
 			}
 		#endif
