@@ -20,7 +20,7 @@ public Plugin myinfo =
 	name        = PLUGIN_NAME,
 	author      = ".Rushaway",
 	description = "CIDR Block Discord",
-	version     = "1.1.1",
+	version     = "1.1.2",
 	url         = ""
 };
 
@@ -64,7 +64,7 @@ public void OnLibraryRemoved(const char[] sName)
 
 public void OnConfigsExecuted()
 {
-	GetConVarString(g_cvHostName, g_sServerName, sizeof(g_sServerName));
+	g_cvHostName.GetString(g_sServerName, sizeof(g_sServerName));
 }
 
 public void CIDR_OnActionPerformed(int client, int timestamp, char[] sAction)
