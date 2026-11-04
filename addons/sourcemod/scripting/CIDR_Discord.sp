@@ -20,7 +20,7 @@ public Plugin myinfo =
 	name        = PLUGIN_NAME,
 	author      = ".Rushaway",
 	description = "CIDR Block Discord",
-	version     = "1.1.2",
+	version     = "1.1.3",
 	url         = ""
 };
 
