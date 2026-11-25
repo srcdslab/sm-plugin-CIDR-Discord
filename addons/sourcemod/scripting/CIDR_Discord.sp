@@ -20,7 +20,7 @@ public Plugin myinfo =
 	name        = PLUGIN_NAME,
 	author      = ".Rushaway",
 	description = "CIDR Block Discord",
-	version     = "1.1.4",
+	version     = "1.1.5",
 	url         = ""
 };
 
@@ -35,7 +35,8 @@ public void OnPluginStart()
 	g_cvWebhook = CreateConVar("sm_cidr_discord_webhook", "", "The webhook URL of your Discord channel.", FCVAR_PROTECTED);
 	g_cvWebhookRetry = CreateConVar("sm_cidr_discord_webhook_retry", "3", "Number of retries if webhook fails.", FCVAR_PROTECTED);
 	g_cvAvatar = CreateConVar("sm_cidr_discord_avatar", "https://avatars.githubusercontent.com/u/110772618?s=200&v=4", "URL to Avatar image.");
-	g_cvUsername = CreateConVar("sm_cidr_discord_username", "CIDR Discord", "Discord username.");
+	// Discord rejects webhook usernames that contain "discord" (HTTP 400), see SanitizeUsername
+	g_cvUsername = CreateConVar("sm_cidr_discord_username", "CIDR Block", "Webhook username (Discord rejects names containing \"discord\").");
 
 	/* Thread config */
 	g_cvThreadName = CreateConVar("sm_cidr_discord_threadname", "CDIR - New Block", "The Thread Name of your Discord forums. (If not empty, will create a new thread)", FCVAR_PROTECTED);
@@ -102,6 +103,7 @@ stock void SendWebHook(char sMessage[WEBHOOK_MSG_MAX_SIZE], char sWebhookURL[WEB
 	char sAvatar[256];
 	g_cvAvatar.GetString(sAvatar, sizeof(sAvatar));
 
+	SanitizeUsername(sName, sizeof(sName));
 	if (strlen(sName) > 0)
 		webhook.SetUsername(sName);
 	if (strlen(sAvatar) > 0)
@@ -117,6 +119,25 @@ stock void SendWebHook(char sMessage[WEBHOOK_MSG_MAX_SIZE], char sWebhookURL[WEB
 
 	webhook.Execute(sWebhookURL, OnWebHookExecuted, pack, sThreadID);
 	delete webhook;
+}
+
+// Discord answers HTTP 400 to a webhook username containing "discord" (any case), so every
+// message was dropped with the old default "CIDR Discord" (ZE, 25/11/2026). Strip the word
+// and warn once instead of losing the notification.
+void SanitizeUsername(char[] sName, int iMaxLen)
+{
+	if (StrContains(sName, "discord", false) == -1)
+		return;
+
+	static bool bWarned = false;
+	if (!bWarned)
+	{
+		bWarned = true;
+		LogError("[%s] sm_cidr_discord_username \"%s\" contains \"discord\", which Discord rejects: the word is removed.", PLUGIN_NAME, sName);
+	}
+
+	ReplaceString(sName, iMaxLen, "discord", "", false);
+	TrimString(sName);
 }
 
 public void OnWebHookExecuted(HTTPResponse response, DataPack pack)
